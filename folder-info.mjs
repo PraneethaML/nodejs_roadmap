@@ -1,31 +1,46 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-let folder;
-if (process.argv.length > 2) {
-  console.log("Arguments were passed!");
-  
-  const userArgs = process.argv.slice(2); 
-  console.log("User arguments:", userArgs);
-  folder = userArgs[0];
-} else {
-  console.log("No command-line arguments were provided.");
-  folder = process.cwd();
+function getFolderFromArgs() {
+  const folder = process.argv[2] || process.cwd();
+
+  if (!process.argv[2]) {
+    console.log('No command-line argument provided. Using current directory.');
+  }
+
+  return path.resolve(folder);
 }
 
-if (!fs.existsSync(folder)) {
-  console.error("The specified folder does not exist:", folder);
+function readFolder(folderPath) {
+  try {
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+
+    const files = entries
+      .filter(entry => entry.isFile())
+      .map(entry => entry.name);
+
+    const folders = entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
+
+    return { files, folders };
+  } catch (error) {
+    console.error(`Unable to read folder: ${folderPath}`);
+    console.error(error.message);
+    process.exit(1);
+  }
+}
+
+const folderPath = getFolderFromArgs();
+
+if (!fs.existsSync(folderPath)) {
+  console.error(`Folder does not exist: ${folderPath}`);
   process.exit(1);
 }
 
-console.log("Folder:", path.basename(folder));
+const { files, folders } = readFolder(folderPath);
 
-let folder_path = path.resolve(folder);
-console.log("Path:", folder);
-let folder_contents = fs.readdirSync(folder_path);
-
-let files = folder_contents.filter(item => fs.statSync(path.join(folder_path, item)).isFile());
-console.log("Files:", files);
-let folders = folder_contents.filter(item => fs.statSync(path.join(folder_path, item)).isDirectory());
-console.log("Folders:", folders);
-
+console.log('Folder:', path.basename(folderPath));
+console.log('Path:', folderPath);
+console.log('Files:', files);
+console.log('Folders:', folders);
